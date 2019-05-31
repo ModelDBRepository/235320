@@ -1,0 +1,129 @@
+
+load_file("dopaminergic.hoc")
+
+
+load_file("fixnseg.hoc")
+
+v_init = -62.6
+
+clamp = 0                     /* switch for voltage clamp*/
+
+tstart = 0
+tstop = 500    /*time in msec*/
+
+Dtmax = 1.0  
+Dt = 1.00
+
+dt = 5e-1 /*5e-4*/  
+
+nainit=  4.075
+vsolder=v_init
+vsold=v_init
+
+/*PARAMETERS*/
+na_cond_s = 550.0e-6 
+na_cond_d = 550.0e-6 
+kdr_cond = 665.0e-6 
+ca_cond = 11.196e-6
+kca_cond = 0.20*59.0e-6  /* 0.20 change from Kuznetsova */
+a_cond_s = 570.e-6     
+a_cond_p = 285.0e-6 
+a_cond_d = 266e-6   
+/*stronger gA *1.28 =  729.6, 364.8, 340.48*/
+iapl = 0 /*in nA, -0.180nA=-180pA*/
+
+global_ra = 100   /* change from Kuznetsova */    
+forall Ra = global_ra
+global_cm = 0.75
+forall cm = global_cm
+g_celsius = 35
+celsius = g_celsius
+forall ion_style("na_ion", 2,2,0,0,0)
+access soma			/* All default references are to soma */
+
+objectvar vc
+objref cvode
+cvode = new CVode(1) /* 0 for clamp*/
+x= cvode.active(1)
+
+ourgampa=0.0
+ourPnmda=0.0
+
+
+
+
+proc init_cell() {
+
+
+forsec  somatic {
+	{insert nabalan}
+        {insert hh3 gnabar_hh3 = na_cond_s gkhhbar_hh3 = kdr_cond gkabar_hh3 = a_cond_s
+          qs_hh3 = 8.0 qv_hh3 = 56.0}
+        {insert pump}
+        {insert leak}
+        {insert cabalan}
+        {insert cachan gcalbar_cachan = ca_cond gkbar_cachan = 0.0}
+        {insert kca gkbar_kca = kca_cond}
+        // {insert capump} 
+
+    }
+
+
+forsec  basal {
+	
+	{insert nabalan}
+	{insert hh3 gnabar_hh3 = na_cond_d  gkhhbar_hh3 = kdr_cond gkabar_hh3 = a_cond_d
+          qv_hh3 = 60.0 qs_hh3 = 5.0}
+	{insert pump}
+        {insert leak}       
+        {insert cabalan}
+        {insert cachan gcalbar_cachan = ca_cond gkbar_cachan = 0.0 }
+        {insert kca gkbar_kca = kca_cond}
+        
+	}
+
+forsec excitozone {
+        
+	{insert nabalan}
+	{insert hh3 gnabar_hh3 = 50*na_cond_s  gkhhbar_hh3 = 30*kdr_cond gkabar_hh3 = a_cond_d
+          qv_hh3 = 60.0 qs_hh3 = 5.0 shift_hh3 = 5 sshift_hh3 = -4}
+	{insert pump}
+        {insert leak}       
+        {insert cabalan}
+        {insert cachan gcalbar_cachan = ca_cond gkbar_cachan = 0.0 }
+        {insert kca gkbar_kca = kca_cond}
+
+        }
+
+forsec axonal {
+	
+	{insert nabalan}
+	{insert hh3 gnabar_hh3 = na_cond_d  gkhhbar_hh3 = kdr_cond gkabar_hh3 = a_cond_d
+          qv_hh3 = 60.0 qs_hh3 = 5.0}
+	{insert pump}
+        {insert leak}       
+        {insert cabalan}
+        {insert cachan gcalbar_cachan = ca_cond gkbar_cachan = 0.0 }
+        {insert kca gkbar_kca = kca_cond}
+
+        }   
+
+forall cm = global_cm
+forall Ra = global_ra
+g_celsius = 35
+
+    }
+tot=0
+forall {tot=tot+nseg}
+print "segments before ", tot
+nseg=1
+
+// Increase number of segments
+geom_nseg()
+tot=0
+forall {tot=tot+nseg}
+print "segments after ", tot
+
+init_cell()
+
+load_file("sesion.ses")
